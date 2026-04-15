@@ -33,6 +33,14 @@ const server = net.createServer((connection) => {
             list.push(...values);
             redisStore.set(key, list);
             connection.write(`:${list.length}\r\n`);
+        }else if(command[2] === "LRANGE") {
+            const key = command[4], start  = Number(command[6]) , end = Number(command[8]);
+            let message = "";
+            const values = redisStore.get(key) || [];
+            for (let i = start; i <= end ; i++) {
+                message += '$' + values[i].length + `\r\n` + values[i] + `\r\n`;
+            }
+            connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
         }
 
     });

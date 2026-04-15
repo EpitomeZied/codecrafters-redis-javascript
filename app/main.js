@@ -13,14 +13,15 @@ const server = net.createServer((connection) => {
             const message = command[4];
             connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
         } else if (command[2] === "SET") {
-            map.set(command[4], command[6]);
+            const key = command[4] , value = {value : command[6] , expiresAt: Date.now() + command[10]};
+            map.set(key , value);
             connection.write(`+OK\r\n`);
         } else if (command[2] === "GET") {
             const message = map.get(command[4]);
-            if (message === undefined) {
+            if (message === undefined || message.expiresAt < Date.now()) {
                 connection.write(`$-1\r\n`); // Null Bulk String
             } else {
-                connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
+                connection.write(`$${message.value.length}\r\n${message.value}\r\n`); // Bulk String
             }
         }
     });

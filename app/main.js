@@ -38,8 +38,14 @@ const server = net.createServer((connection) => {
             let start = Number(command[6]), end = Number(command[8]);
             let message = [];
             const values = redisStore.get(key) || [];
-            if (start < 0) start = values.length + start;
-            if (end < 0) end = values.length + end;
+            if (start < 0) start = Math.max(values.length + start , 0);
+            if (end < 0) end =  Math.max(values.length + end , 0);
+
+            if (start > end) {
+                let x = start;
+                start = end;
+                end = x;
+            }
             for (let i = start; i < Math.min(end + 1, values.length); i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }

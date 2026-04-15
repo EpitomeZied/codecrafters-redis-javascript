@@ -33,7 +33,25 @@ const server = net.createServer((connection) => {
             const list = redisStore.get(key) || [];
             list.push(...values);
             redisStore.set(key, list);
-            connection.write(`:${list.length}\r\n`);
+            const replyLength = list.length;
+            const queue = blockedClients.get(key) || [];
+
+            while (list.length > 0 && queue.length > 0) {
+                const entry = queue.shift();
+                if (entry.timer !== null) {
+                    clearTimeout(entry.timer);
+                }
+
+                const value = list.shift();
+                entry.connection.write(`*2\r\n$${key.length}\r\n${key}\r\n$${value.length}\r\n${value}\r\n`);
+            }
+            redisStore.set(key, list);
+            if (queue.length === 0) {
+                blockedClients.delete(key);
+            } else {
+                blockedClients.set(key, queue);
+            }
+            connection.write(`:${replyLength}\r\n`);
         } else if (command[2] === "LRANGE") {
             const key = command[4];
             let start = Number(command[6]), end = Number(command[8]);
@@ -55,18 +73,18 @@ const server = net.createServer((connection) => {
             const list = redisStore.get(key) || [];
             newValues.push(...list);
             redisStore.set(key, newValues);
-            const replayLength = list.length;
+            const replyLength = newValues.length;
             const queue = blockedClients.get(key) || [];
 
-            while (list.length > 0 && queue.length > 0) {
+            while (newValues.length > 0 && queue.length > 0) {
                 const entry = queue.shift();
                 if (entry.timer !== null) {
                     clearTimeout(entry.timer);
                 }
-                const value = list.shift();
+                const value = newValues.shift();
                 entry.connection.write(`*2\r\n$${key.length}\r\n${key}\r\n$${value.length}\r\n${value}\r\n`);
             }
-            redisStore.set(key, list);
+            redisStore.set(key, newValues);
             if (queue.length === 0) {
                 blockedClients.delete(key);
             } else {

@@ -34,9 +34,12 @@ const server = net.createServer((connection) => {
             redisStore.set(key, list);
             connection.write(`:${list.length}\r\n`);
         } else if (command[2] === "LRANGE") {
-            const key = command[4], start = Number(command[6]), end = Number(command[8]);
+            const key = command[4];
+            let start = Number(command[6]), end = Number(command[8]);
             let message = [];
             const values = redisStore.get(key) || [];
+            if (start < 0) start = values.length + start;
+            if (end < 0) end = values.length + end;
             for (let i = start; i < Math.min(end + 1, values.length); i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }

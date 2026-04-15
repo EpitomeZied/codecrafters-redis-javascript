@@ -57,14 +57,14 @@ const server = net.createServer((connection) => {
             let start = Number(command[6]), end = Number(command[8]);
             let message = [];
             const values = redisStore.get(key) || [];
-            if (start < 0) start = Math.max(values.length + start , 0);
-            if (end < 0) end =  Math.max(values.length + end , 0);
+            if (start < 0) start = Math.max(values.length + start, 0);
+            if (end < 0) end = Math.max(values.length + end, 0);
 
             for (let i = start; i < Math.min(end + 1, values.length); i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }
             connection.write(`*${message.length}\r\n${message.join("")}`); // Array
-        }else if(command[2] === "LPUSH") {
+        } else if (command[2] === "LPUSH") {
             const key = command[4];
             const newValues = [];
             for (let i = command.length - 2; i >= 6; i -= 2) { // 10 , 8, 6 , ...
@@ -91,11 +91,11 @@ const server = net.createServer((connection) => {
                 blockedClients.set(key, queue);
             }
             connection.write(`:${replyLength}\r\n`);
-        }else if (command[2] === "LLEN") {
+        } else if (command[2] === "LLEN") {
             const key = command[4];
             const values = redisStore.get(key) || [];
             connection.write(`:${values.length}\r\n`);
-        }else if (command[2] === "LPOP") {
+        } else if (command[2] === "LPOP") {
             const key = command[4];
             const values = redisStore.get(key) || [];
             const count = Number(command[6]);
@@ -148,6 +148,20 @@ const server = net.createServer((connection) => {
                         connection.write(`*-1\r\n`);
                     }, timeout * 1000);
                 }
+            }
+        } else if (command[2] === "TYPE") {
+            const key = command[4];
+            const value = redisStore.get(key);
+
+            if (value === undefined) {
+                connection.write(`+none\r\n`);
+            } else if (Array.isArray(value)) {
+                connection.write(`+list\r\n`);
+            } else if (value.expiresAt < Date.now()) {
+                redisStore.delete(key);
+                connection.write(`+none\r\n`);
+            } else {
+                connection.write(`+string\r\n`);
             }
         }
     });

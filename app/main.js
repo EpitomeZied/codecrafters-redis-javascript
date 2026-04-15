@@ -24,10 +24,13 @@ const server = net.createServer((connection) => {
                 connection.write(`$${message.value.length}\r\n${message.value}\r\n`); // Bulk String
             }
         } else if (command[2] === "RPUSH") {
-            const key = command[4], value = command[6];
-            console.log(key);
+            const key = command[4];
+            const values = [];
+            for (let i = 6; i < command.length - 1; i += 2) { // 6 , 8, 10 , ...
+                values.push(command[i]);
+            }
             const list = redisStore.get(key) || [];
-            list.push(value);
+            list.push(...values);
             redisStore.set(key, list);
             connection.write(`:${list.length}\r\n`);
         }
@@ -36,4 +39,3 @@ const server = net.createServer((connection) => {
 });
 server.listen(6379, "127.0.0.1", (err) => {
 });
-

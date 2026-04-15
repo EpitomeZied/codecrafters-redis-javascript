@@ -38,14 +38,14 @@ const server = net.createServer((connection) => {
             let start = Number(command[6]), end = Number(command[8]);
             let message = [];
             const values = redisStore.get(key) || [];
-            if (start < 0) start = Math.max(values.length + start , 0);
-            if (end < 0) end =  Math.max(values.length + end , 0);
+            if (start < 0) start = Math.max(values.length + start, 0);
+            if (end < 0) end = Math.max(values.length + end, 0);
 
             for (let i = start; i < Math.min(end + 1, values.length); i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }
             connection.write(`*${message.length}\r\n${message.join("")}`); // Array
-        }else if(command[2] === "LPUSH") {
+        } else if (command[2] === "LPUSH") {
             const key = command[4];
             const newValues = [];
             for (let i = command.length - 2; i >= 6; i -= 2) { // 10 , 8, 6 , ...
@@ -55,20 +55,26 @@ const server = net.createServer((connection) => {
             newValues.push(...list);
             redisStore.set(key, newValues);
             connection.write(`:${newValues.length}\r\n`);
-        }else if (command[2] === "LLEN") {
+        } else if (command[2] === "LLEN") {
             const key = command[4];
             const values = redisStore.get(key) || [];
             connection.write(`:${values.length}\r\n`);
-        }else if (command[2] === "LPOP") {
+        } else if (command[2] === "LPOP") {
             const key = command[4];
+            const count = command[6] === undefined ? 1 : Number(command[6]);
             const values = redisStore.get(key) || [];
 
             if (values.length === 0) {
                 connection.write("$-1\r\n");
-            } else {
+            } else if (command[6] === undefined) {
                 const value = values.shift();
                 redisStore.set(key, values);
                 connection.write(`$${value.length}\r\n${value}\r\n`);
+            } else {
+                const removed = values.splice(0, count);
+                redisStore.set(key, values);
+                const response = removed.map((value) => `$${value.length}\r\n${value}\r\n`).join("");
+                connection.write(`*${removed.length}\r\n${response}`);
             }
         }
 

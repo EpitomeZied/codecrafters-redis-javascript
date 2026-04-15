@@ -13,7 +13,7 @@ const server = net.createServer((connection) => {
             const message = command[4];
             connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
         } else if (command[2] === "SET") {
-            const key = command[4] , value = {value : command[6] , expiresAt: Date.now() + command[10]};
+            const key = command[4] , value = {value : command[6] , expiresAt: Date.now() + Number(command[10])};
             map.set(key , value);
             connection.write(`+OK\r\n`);
         } else if (command[2] === "GET") {

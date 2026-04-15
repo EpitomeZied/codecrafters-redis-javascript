@@ -3,6 +3,7 @@ const net = require("node:net");
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
 const redisStore = new Map();
+const blockedClients = new Map();
 
 const server = net.createServer((connection) => {
     connection.on("data", (data) => {
@@ -70,8 +71,41 @@ const server = net.createServer((connection) => {
                 redisStore.set(key, values);
                 connection.write(`$${value.length}\r\n${value}\r\n`);
             }
-        }
+        } else if (command[2] === "BLPOP") {
+            const key = command[4], timeout = Number(command[6]);
+            const values = redisStore.get(key) || [];
 
+            if (values.length > 0) {
+                const value = values.shift();
+                redisStore.set(key, values);
+                connection.write(`*2\r\n$${key.length}\r\n${key}\r\n$${value.length}\r\n${value}\r\n`);
+            } else {
+                const entry = {connection, timer: null};
+
+                if (!blockedClients.has(key)) {
+                    blockedClients.set(key, []);
+                }
+                blockedClients.get(key).push(entry);
+
+                if (timeout > 0) {
+                    entry.timer = setTimeout(() => {
+                        const queue = blockedClients.get(key) || [];
+                        const index = queue.indexOf(entry);
+                        if (index !== -1) {
+                            queue.splice(index, 1);
+                        }
+
+                        if (queue.length === 0) {
+                            blockedClients.delete(key);
+                        } else {
+                            blockedClients.set(key, queue);
+                        }
+
+                        connection.write(`*-1\r\n`);
+                    }, timeout * 1000);
+                }
+            }
+        }
     });
 });
 server.listen(6379, "127.0.0.1", (err) => {

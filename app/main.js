@@ -11,16 +11,16 @@ const server = net.createServer((connection) => {
             connection.write("+PONG\r\n");
         } else if (command[2] === "ECHO") {
             const message = command[4];
-            connection.write(`$${message.length}\r\n${message}\r\n`);
+            connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
         } else if (command[2] === "SET") {
             map.set(command[4], command[6]);
             connection.write(`+OK\r\n`);
         } else if (command[2] === "GET") {
             const message = map.get(command[4]);
-            if (!message) {
+            if (message === undefined) {
                 connection.write(`$-1\r\n`); // Null Bulk String
             } else {
-                connection.write(`$${message.length}\r\n${message}\r\n`);
+                connection.write(`$${message.length}\r\n${message}\r\n`); // Bulk String
             }
         }
     });

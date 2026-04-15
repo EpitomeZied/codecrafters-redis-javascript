@@ -55,6 +55,10 @@ const server = net.createServer((connection) => {
             newValues.push(...list);
             redisStore.set(key, newValues);
             connection.write(`:${newValues.length}\r\n`);
+        }else if (command[2] === "LLEN") {
+            const key = command[4];
+            const values = redisStore.get(key) || [];
+            connection.write(`:${values.length}\r\n`);
         }
 
     });

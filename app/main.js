@@ -98,9 +98,18 @@ const server = net.createServer((connection) => {
         }else if (command[2] === "LPOP") {
             const key = command[4];
             const values = redisStore.get(key) || [];
+            const count = Number(command[6]);
 
             if (values.length === 0) {
                 connection.write("$-1\r\n");
+            } else if (!Number.isNaN(count)) {
+                const poppedValues = [];
+                for (let i = 0; i < count && values.length > 0; i++) {
+                    const value = values.shift();
+                    poppedValues.push(`$${value.length}\r\n${value}\r\n`);
+                }
+                redisStore.set(key, values);
+                connection.write(`*${poppedValues.length}\r\n${poppedValues.join("")}`);
             } else {
                 const value = values.shift();
                 redisStore.set(key, values);

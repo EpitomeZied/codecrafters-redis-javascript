@@ -55,7 +55,24 @@ const server = net.createServer((connection) => {
             const list = redisStore.get(key) || [];
             newValues.push(...list);
             redisStore.set(key, newValues);
-            connection.write(`:${newValues.length}\r\n`);
+            const replayLength = list.length;
+            const queue = blockedClients.get(key) || [];
+
+            while (list.length > 0 && queue.length > 0) {
+                const entry = queue.shift();
+                if (entry.timer !== null) {
+                    clearTimeout(entry.timer);
+                }
+                const value = list.shift();
+                entry.connection.write(`*2\r\n$${key.length}\r\n${key}\r\n$${value.length}\r\n${value}\r\n`);
+            }
+            redisStore.set(key, list);
+            if (queue.length === 0) {
+                blockedClients.delete(key);
+            } else {
+                blockedClients.set(key, queue);
+            }
+            connection.write(`:${replyLength}\r\n`);
         }else if (command[2] === "LLEN") {
             const key = command[4];
             const values = redisStore.get(key) || [];

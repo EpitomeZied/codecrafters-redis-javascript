@@ -37,7 +37,7 @@ const server = net.createServer((connection) => {
             const key = command[4], start = Number(command[6]), end = Number(command[8]);
             let message = [];
             const values = redisStore.get(key) || [];
-            for (let i = start; i < Math.min(end, values.length); i++) {
+            for (let i = start; i < Math.min(end+1, values.length); i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }
             connection.write(`*${message.length}\r\n${message.join("")}`); // Array

@@ -40,7 +40,7 @@ const server = net.createServer((connection) => {
             for (let i = start; i <= end; i++) {
                 message.push(`$${values[i].length}\r\n${values[i]}\r\n`);
             }
-            connection.write(`*${message.length}\r\n${message.join("")}\r\n`); // Array
+            connection.write(`*${message.length}\r\n${message.join("")}`); // Array
         }
 
     });

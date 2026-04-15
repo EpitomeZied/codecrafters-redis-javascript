@@ -1,28 +1,18 @@
-const net = require("net");
+const net = require("node:net");
 
-const server = net.createServer();
-const port = 6379;
-const host = "127.0.0.1";
+// You can use print statements as follows for debugging, they'll be visible when running tests.
+console.log("Logs from your program will appear here!");
 
-server.on("connection", (socket) => {
-    socket.on("data", (data) => {
-        const command = data.toString().split("\r\n");
-        if (command[2].toLowerCase() === "ping") {
-            socket.write("+PONG\r\n");
-        } else if (command[2].toLowerCase() === "echo") {
-            socket.write('$' + command[4].length + '\r\n' + command[4] + '\r\n');
+const server = net.createServer((connection) => {
+    connection.on("data", (data) => {
+        const commend = data.toString().split("\r\n");
+        if (commend[2] === "ping"){
+            connection.write(`+PONG\r\n`);
+        }else if(commend[2] === "echo"){
+            connection.write(`+${commend[3]}\r\n`);
         }
-    })
 
+    });
+});
 
-    socket.on("end", () => {
-        console.log("Client disconnect")
-    })
-    socket.on("error", (err) => {
-        console.error("Socket error:", err.message);
-    })
-})
-
-server.listen(port, host, () => {
-    console.log(`server running at ${host}:${port}`)
-})
+server.listen(6379, "127.0.0.1", (err) => {});

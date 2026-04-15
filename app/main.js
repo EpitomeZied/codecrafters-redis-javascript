@@ -59,6 +59,17 @@ const server = net.createServer((connection) => {
             const key = command[4];
             const values = redisStore.get(key) || [];
             connection.write(`:${values.length}\r\n`);
+        }else if (command[2] === "LPOP") {
+            const key = command[4];
+            const values = redisStore.get(key) || [];
+
+            if (values.length === 0) {
+                connection.write("$-1\r\n");
+            } else {
+                const value = values.shift();
+                redisStore.set(key, values);
+                connection.write(`$${value.length}\r\n${value}\r\n`);
+            }
         }
 
     });
